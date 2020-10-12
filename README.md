@@ -1,27 +1,27 @@
 # dmind
 
 首页
-![首页](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/home.jpg)
+![首页](https://gitee.com/weidongdu/pic/raw/master/dmind/home.jpg)
 ---
 
 提交信息
-![提交信息](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/parse.jpg)
+![提交信息](https://gitee.com/weidongdu/pic/raw/master/dmind/parse.jpg)
 ---
 
 文件上传
-![文件上传](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/oss-file.jpg)
+![文件上传](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-file.jpg)
 ---
 
 邮件发送
-![邮件发送](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/mail-detail.jpg)
+![邮件发送](https://gitee.com/weidongdu/pic/raw/master/dmind/mail-detail.jpg)
 ---
 
 本地文件
-![本地文件](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/output.jpg)
+![本地文件](https://gitee.com/weidongdu/pic/raw/master/dmind/output.jpg)
 ---
 
 效果
-![效果](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/xmind.jpg)
+![效果](https://gitee.com/weidongdu/pic/raw/master/dmind/xmind.jpg)
 ---
 
 
@@ -47,26 +47,26 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 配置权限，个人数据，选择私有。
 添加RAM角色。获取AccessKeyId / AccessKeySecret
 
-![开通OSS](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/oss-home.jpg)
-![创建Bucket](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/oss-b-add.jpg)
-![创建Bucket](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/oss-bucket-list.jpg)
-![设置权限](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/oss-policy.jpg)
-![获取AccessKey](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/access.jpg)
+![开通OSS](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-home.jpg)
+![创建Bucket](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-b-add.jpg)
+![创建Bucket](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-bucket-list.jpg)
+![设置权限](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-policy.jpg)
+![获取AccessKey](https://gitee.com/weidongdu/pic/raw/master/dmind/access.jpg)
 
 
 ### 3. 准备邮箱
 用于发送生成器思维导图xmind文件。
-![获取AccessKey](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/mail.jpg)
+![获取AccessKey](https://gitee.com/weidongdu/pic/raw/master/dmind/mail.jpg)
 
 ### 4.构建打包
 获取项目 `git clone https://github.com/weidongdu/dmind.git`
-![项目结构](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/tree.jpg)
+![项目结构](https://gitee.com/weidongdu/pic/raw/master/dmind/tree.jpg)
 
 
 进入项目目录  `cd dmind`
 修改配置 `application.properties` `static/js/upload.js`
-![application.properties](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/config1.jpg)
-![upload.js](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/config-2.jpg)
+![application.properties](https://gitee.com/weidongdu/pic/raw/master/dmind/config1.jpg)
+![upload.js](https://gitee.com/weidongdu/pic/raw/master/dmind/config-2.jpg)
 
 
 指定邮箱，设置oss秘钥
@@ -84,5 +84,5 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 `nohup java -Xmx1024m -jar target/dmind-0.0.1-SNAPSHOT.jar >> nohup.log 2>&1 &`
 
 有问题联系
-![VX](https://d-pic.oss-cn-shanghai.aliyuncs.com/WechatIMG229.jpeg)
+![VX](https://gitee.com/weidongdu/pic/raw/master/dmind/WechatIMG229.jpeg)
 
