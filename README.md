@@ -1,5 +1,7 @@
 # dmind
 
+![首页](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/home.jpg)
+
 ### 1.安装Baidu LAC分词
 LAC全称Lexical Analysis of Chinese，是百度自然语言处理部研发的一款联合的词法分析工具，实现中文分词、词性标注、专名识别等功能。
 
@@ -27,8 +29,11 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 用于发送生成器思维导图xmind文件。
 
 ### 4.构建打包
-获取项目 `git clone`
+获取项目 `git clone https://github.com/weidongdu/dmind.git`
+进入项目目录  `cd dmind`
 修改配置 `application.properties` `static/js/upload.js`
+指定邮箱，设置oss秘钥
+
 打包`mvn clean package`
 
 ### 5.启动
