@@ -269,9 +269,14 @@
         obj.stopWords = params.querySelector("textarea").value;
         obj.stopSymbol = params.querySelector("input[name=stopSymbol]").value;
 
-        console.log(JSON.stringify(obj))
         if (count === 0){
-            postJson("/parse/add",obj)
+            postJson("/parse/add",obj);
+            let btn = document.querySelector('#iBtnSubmit');
+            btn.setAttribute("class", "button is-fullwidth is-success is-loading");
+            const interval = setInterval(function () {
+                btn.setAttribute("class", "button is-fullwidth is-success");
+                clearInterval(interval);
+            }, 10000);
         }
     }
 
