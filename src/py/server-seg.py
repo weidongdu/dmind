@@ -9,7 +9,7 @@ lac.load_customization('dict.txt', sep=None)
 @app.route('/seg',methods=['POST'])
 def seg():
 	if request.is_json:
-		app.logger.info('request json = %s', request.json)
+		app.logger.debug('request json = %s', request.json)
 		result = request.json['word']
 		seg_result = lac.run(result)
 		return Response(json.dumps(seg_result),  mimetype='application/json')

@@ -6,6 +6,8 @@ import com.aliyun.oss.model.OSSObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -56,7 +58,11 @@ public class AliOssUtil {
                 String[] split_arr = line.split(CSV_SEP);
                 int index = Math.max(col - 1, 0);
                 if (split_arr.length > index) {
-                    set.add(split_arr[index]);
+                    if (StringUtils.isEmpty(split_arr[index])){
+
+                    }else {
+                        set.add(split_arr[index]);
+                    }
                 }
             }
 
