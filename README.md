@@ -61,8 +61,14 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 ### 4.构建打包
 获取项目 `git clone https://github.com/weidongdu/dmind.git`
 ![项目结构](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/tree.jpg)
+
+
 进入项目目录  `cd dmind`
 修改配置 `application.properties` `static/js/upload.js`
+![application.properties](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/config1.jpg)
+![upload.js](https://d-pic.oss-cn-shanghai.aliyuncs.com/dmind/config-2.jpg)
+
+
 指定邮箱，设置oss秘钥
 
 打包`mvn clean package`
