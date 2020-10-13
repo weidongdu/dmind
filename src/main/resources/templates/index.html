@@ -311,7 +311,7 @@
     }
 
 
-    const ws = new WebSocket("ws://localhost:8091");
+    const ws = new WebSocket("ws://localhost:8091");//本地运行 localhost ， 线上替换localhost 为机器ip
 
     ws.onopen = function(evt) {
         console.log("Connection open ...");
