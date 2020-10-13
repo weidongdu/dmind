@@ -78,7 +78,7 @@
                 <div class="field">
                     <label class="label">上传文件名</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="需要解析的文件" disabled name="url">
+                        <input class="input" type="text" placeholder="需要解析的文件" name="url">
                     </div>
                 </div>
             </div>
@@ -193,8 +193,15 @@
 
         <div class="field">
             <div class="control">
-                <button class="button is-fullwidth is-success" id="iBtnSubmit" onclick="parseAdd()">开始解析</button>
+                <progress class="progress is-success" value="0" max="100" id="iProgress">60%</progress>
             </div>
+        </div>
+
+        <div class="field">
+            <div class="control">
+                <button class="button is-fullwidth is-info" id="iBtnSubmit" onclick="parseAdd()">开始解析</button>
+            </div>
+
         </div>
 
 
@@ -269,14 +276,15 @@
         obj.stopWords = params.querySelector("textarea").value;
         obj.stopSymbol = params.querySelector("input[name=stopSymbol]").value;
 
+        console.log(JSON.stringify(obj))
         if (count === 0){
             postJson("/parse/add",obj);
             let btn = document.querySelector('#iBtnSubmit');
-            btn.setAttribute("class", "button is-fullwidth is-success is-loading");
+            btn.setAttribute("class", "button is-fullwidth is-info is-loading");
             const interval = setInterval(function () {
-                btn.setAttribute("class", "button is-fullwidth is-success");
+                btn.setAttribute("class", "button is-fullwidth is-info");
                 clearInterval(interval);
-            }, 10000);
+            }, 1000);
         }
     }
 
@@ -302,6 +310,27 @@
         }).then(res => console.log(res));
     }
 
+
+    const ws = new WebSocket("ws://localhost:8091");
+
+    ws.onopen = function(evt) {
+        console.log("Connection open ...");
+        // ws.send("Hello WebSockets!");
+    };
+
+    ws.onmessage = function(evt) {
+        console.log( "Received Message: " + evt.data);
+        // ws.close();
+        let msgObj = JSON.parse(evt.data);
+        if ('process' === msgObj.key){
+            //设置 进度条
+            document.querySelector("#iProgress").value = msgObj.value;
+        }
+    };
+
+    ws.onclose = function(evt) {
+        console.log("Connection closed.");
+    };
 </script>
 
 </body>

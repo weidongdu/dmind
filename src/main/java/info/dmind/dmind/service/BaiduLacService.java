@@ -35,8 +35,9 @@ public class BaiduLacService {
     private static final String OUTPUT_DIR = "output";
     private static final String PATH_SYMBOL = "/";
     private static final String TYPE_XMIND = ".xmind";
+    private static final String PROCESS = "process";
     private static final String PROJECT_PATH = new FileSystemResource("").getFile().getAbsolutePath();
-
+    private static final JSONObject processJSONObject = new JSONObject();
 
     @Resource
     private HttpRequestUtil httpRequestUtil;
@@ -44,6 +45,8 @@ public class BaiduLacService {
     private MailUtil mailUtil;
     @Resource
     private AliOssUtil aliOssUtil;
+
+    private SimpleServer simpleServer = SimpleServer.getSimpleServer();
 
     /**
      * 去 指定 url 读取文件
@@ -144,7 +147,7 @@ public class BaiduLacService {
 
 
     private void outputSingle(DmindObject dmind, IWorkbook workBook) throws IOException, CoreException, SendMailException {
-        String xmindName = dmind.getTopicWord()  + WORD_LINK_SYMBOL+ new Date().getTime()+ TYPE_XMIND;
+        String xmindName = dmind.getTopicWord() + WORD_LINK_SYMBOL + new Date().getTime() + TYPE_XMIND;
         String outputDir = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR;
         String xmindFile = outputDir + PATH_SYMBOL + dmind.getTopicWord() + TYPE_XMIND;
 
@@ -158,6 +161,7 @@ public class BaiduLacService {
         //发送邮件
         HashMap<String, String> attachMap = new HashMap<>();
         attachMap.put(xmindName, new File(xmindFile).getAbsolutePath());
+        simpleServer.send(PROCESS, String.valueOf(100));
         mailUtil.sendFile(attachMap, xmindName, dmind.getMailTo());
         log.info("mail to [{}] , send success {}", dmind.getMailTo(), xmindFile);
     }
@@ -168,7 +172,7 @@ public class BaiduLacService {
         int index = 0;
         long now = new Date().getTime();
         for (IWorkbook workbook : list) {
-            String xmindName = index + WORD_LINK_SYMBOL + workbook.getPrimarySheet().getTitleText() + WORD_LINK_SYMBOL+ now + TYPE_XMIND;
+            String xmindName = index + WORD_LINK_SYMBOL + workbook.getPrimarySheet().getTitleText() + WORD_LINK_SYMBOL + now + TYPE_XMIND;
             String outputDir = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR;
             String xmindFile = outputDir + PATH_SYMBOL + xmindName;
 
@@ -181,7 +185,7 @@ public class BaiduLacService {
             index++;
         }
 
-        String zipName = dmind.getTopicWord() + WORD_LINK_SYMBOL+ now + ".zip";
+        String zipName = dmind.getTopicWord() + WORD_LINK_SYMBOL + now + ".zip";
         String zipFile = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR + PATH_SYMBOL + zipName;
 
         int count = ZipUtil.compress(xmindFileList, zipFile, false);
@@ -197,6 +201,9 @@ public class BaiduLacService {
         }
 
         mailUtil.sendFile(attachMap, zipName, dmind.getMailTo());
+
+
+        simpleServer.send(PROCESS, String.valueOf(100));
         log.info("mail to [{}] , send success {}", dmind.getMailTo(), zipName);
     }
 
@@ -323,6 +330,7 @@ public class BaiduLacService {
                     jsonObject.put("word", word);
                     segByServer(dmind, segMap, jsonObject, word);
                     log.info("keyword parse {} / {}", i * BaiduLacService.DEFAULT_BATCH_SIZE, keywordList.size());
+                    simpleServer.send(PROCESS, String.valueOf((i * BaiduLacService.DEFAULT_BATCH_SIZE * 100) / keywordList.size()));
                 }
             }
             if (mod > 0) {
