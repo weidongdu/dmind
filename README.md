@@ -81,7 +81,7 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 
 启动Web 数据处理服务（Java）可根据实际情况调整内存大小
 
-`nohup java -Xmx1024m -jar target/dmind-0.0.1-SNAPSHOT.jar >> nohup.log 2>&1 &`
+`nohup java -Xmx2048m -jar target/dmind-0.0.1-SNAPSHOT.jar >> nohup.log 2>&1 &`
 
 有问题联系
 ![VX](https://gitee.com/weidongdu/pic/raw/master/dmind/WechatIMG229.jpeg)
