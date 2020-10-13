@@ -1,4 +1,4 @@
-# dmind
+# 大数据 转换 思维导图
 
 首页
 ![首页](https://gitee.com/weidongdu/pic/raw/master/dmind/home.jpg)
