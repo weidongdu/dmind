@@ -75,11 +75,11 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 
 ### 5.启动
 启动 百度LAC 分词服务 （python）
-进入py文件夹,
+进入py文件夹(dmind/src/py),
 可以通过修改dict.txt,添加自定义分词 比如：我的兄弟 这样当遇到[我的兄弟]是，就会当作一个完整的词，而不是 [我、的、兄弟]
 执行`./run.sh`
 
-启动Web 数据处理服务（Java）可根据实际情况调整内存大小
+启动Web 数据处理服务（Java）(dmind/)可根据实际情况调整内存大小
 
 `nohup java -Xmx2048m -jar target/dmind-0.0.1-SNAPSHOT.jar >> nohup.log 2>&1 &`
 
