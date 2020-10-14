@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 @Slf4j
 public class SimpleServer extends WebSocketServer {
 
+//    private static final String host = "localhost";
     private static final String host = "0.0.0.0";
     private static final int port = 8091;
     private static SimpleServer simpleServer = null;
