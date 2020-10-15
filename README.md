@@ -43,9 +43,12 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 
 服务介绍`https://www.aliyun.com/product/oss`
 
+
 创建Bucket，可以理解为电脑C盘 D盘
 配置权限，个人数据，选择私有。
 添加RAM角色。获取AccessKeyId / AccessKeySecret
+
+#### 如果使用阿里云服务器，最好使用阿里云OSS内网流量，速度快而且免费。
 
 ![开通OSS](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-home.jpg)
 ![创建Bucket](https://gitee.com/weidongdu/pic/raw/master/dmind/oss-b-add.jpg)
