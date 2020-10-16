@@ -42,8 +42,6 @@ function deleteNotify() {
 function parseAdd() {
     let obj = getDmindObj();
     if (obj.count === 0) {
-        console.log(ws.readyState)
-        console.log(ws.CLOSED)
         postJson("/parse/add", obj, parseAddRes);
         btnParse('#iBtnSubmit')
     }
@@ -165,4 +163,75 @@ function parseTopRes(response) {
 
 function parseAddRes(response) {
     console.log(JSON.stringify(response))
+}
+
+//获取 oss list
+function parseList() {
+    let obj = {};
+    obj.url = document.querySelector("#oss-pre").value;
+    postJson("/parse/list", obj, parseOssListRes);
+}
+
+function parseOssListRes(response) {
+    console.log(response);
+    if (response !== null && response !== undefined && response.code === 0) {
+        //打开模态框
+        document.querySelector('#iModal').setAttribute("class","modal is-active");
+        let ossList = document.querySelector('#ossList');
+        //删除子节点
+        let children = ossList.children;
+        for(let i = children.length - 1; i >= 0; i--) {
+            ossList.removeChild(children[i]);
+        }
+
+        response.data.forEach(item =>{
+            let tr = document.createElement('tr');
+            ossList.append(tr);
+
+            let t_btn = document.createElement('td');
+            let btn = document.createElement('button');
+            btn.setAttribute("class","button");
+            btn.setAttribute("onclick","selectOssFileName(this)");
+            btn.innerText = "选择";
+            tr.append(t_btn);t_btn.append(btn);
+
+            let t_key = document.createElement('td');
+            t_key.innerText = item.key;
+            tr.append(t_key);
+
+            let t_size = document.createElement('td');
+            t_size.innerText = item.size;
+            tr.append(t_size);
+
+            let t_lastModified = document.createElement('td');
+            t_lastModified.innerText = formatTime(new Date(item.lastModified));
+            tr.append(t_lastModified);
+
+        })
+
+    }
+}
+
+function closeModal(){
+    document.querySelector('#iModal').setAttribute("class","modal");
+}
+function selectOssFileName(ele){
+    let url = ele.parentNode.parentNode.children[1].textContent;
+    let params = document.querySelector("#params");
+    params.querySelector("input[name=url]").value = url;
+}
+
+function formatTime(date){
+    let y = date.getFullYear()
+    let m = date.getMonth() + 1
+    m = m < 10 ? '0' + m : m
+    let d = date.getDate()
+    d = d < 10 ? '0' + d : d
+    let h = date.getHours()
+    h = h < 10 ? '0' + h : h
+    let minute = date.getMinutes()
+    minute = minute < 10 ? '0' + minute : minute
+    let second = date.getSeconds()
+    second = second < 10 ? '0' + second : second
+    return y +'-'+ m +'-'+ d + ' ' + h + ':' + minute + ':' + second
 }

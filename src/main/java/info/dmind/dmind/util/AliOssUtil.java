@@ -4,6 +4,9 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.GetObjectRequest;
 import com.aliyun.oss.model.OSSObject;
+import com.aliyun.oss.model.OSSObjectSummary;
+import com.aliyun.oss.model.ObjectListing;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,8 +14,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -55,6 +57,7 @@ public class AliOssUtil {
     /**
      * 返回本地 文件 abs path
      * 返回绝对路径
+     *
      * @param ossObjectName
      * @return
      */
@@ -77,7 +80,7 @@ public class AliOssUtil {
     }
 
 
-    public ArrayList<String> readCsvFromLocal(String filePath,int col) throws IOException {
+    public ArrayList<String> readCsvFromLocal(String filePath, int col) throws IOException {
         // <yourObjectName>从OSS下载文件时需要指定包含文件后缀在内的完整路径，例如abc/efg/123.jpg。
         InputStream content = new FileInputStream(filePath);
         HashSet<String> set = new HashSet<>();
@@ -127,6 +130,43 @@ public class AliOssUtil {
         return new OSSClientBuilder().build(END_POINT, ACCESS_KEY_ID, ACCESS_KEY_SECRET);
     }
 
+    public List<OssFile> fileList(String KeyPrefix) {
+        OSS ossClient = ossClient();
+        ObjectListing objectListing = ossClient.listObjects(BUCKET_NAME, KeyPrefix);
+        List<OSSObjectSummary> sums = objectListing.getObjectSummaries();
+        // 关闭OSSClient。
+        ossClient.shutdown();
+        return toOssFile(sums);
+    }
+
+    public List<OssFile> fileList() {
+        OSS ossClient = ossClient();
+        ObjectListing objectListing = ossClient.listObjects(BUCKET_NAME);
+        List<OSSObjectSummary> sums = objectListing.getObjectSummaries();
+        // 关闭OSSClient。
+        ossClient.shutdown();
+        return toOssFile(sums);
+    }
+
+    //default sort by date desc
+    public List<OssFile> toOssFile(List<OSSObjectSummary> list) {
+        if (list != null && list.size() > 0) {
+            ArrayList<OssFile> ossFiles = new ArrayList<>(list.size());
+            for (OSSObjectSummary obj : list) {
+                if(obj.getSize() == 0)continue;
+                OssFile ossFile = new OssFile();
+                ossFile.setKey(obj.getKey());
+                ossFile.setSize(toHumanRead(obj.getSize()));
+                ossFile.setLastModified(obj.getLastModified());
+                ossFiles.add(ossFile);
+            }
+            ossFiles.sort(Comparator.comparing(OssFile::getLastModified).reversed());
+            return ossFiles;
+        } else {
+            return null;
+        }
+    }
+
     private ByteArrayOutputStream copyIS(InputStream inputStream) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -138,4 +178,35 @@ public class AliOssUtil {
         return baos;
     }
 
+    @Data
+    public class OssFile {
+        private String key;
+        ;//"key": "abc/rank.xlsx",
+        private String size;
+        ;//"size": 220067,
+        private Date lastModified;
+        ;//"lastModified": "2020-10-16T06:23:28.000+00:00",
+    }
+
+    private String toHumanRead(long size) {
+        int k = 1024;
+        if (size < k) {
+            return size + "b";
+        }
+
+        if (size < k * k) {
+            return (size / k) + "kb";
+        }
+
+        if (size < k * k * k) {
+            return (size / (k * k)) + "mb";
+        }
+
+
+        if (size < k * k * k * k) {
+            return (size / (k * k * k)) + "gb";
+        }
+
+        return size + "b";
+    }
 }
