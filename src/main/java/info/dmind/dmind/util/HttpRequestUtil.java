@@ -11,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 public class HttpRequestUtil {
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final OkHttpClient DEFAULT_CLIENT = new OkHttpClient.Builder().connectTimeout(3, TimeUnit.SECONDS).build();
+
+
     /**
      * 构造request for RequestBody
      *
@@ -42,5 +44,6 @@ public class HttpRequestUtil {
             }
         }
     }
+
 
 }

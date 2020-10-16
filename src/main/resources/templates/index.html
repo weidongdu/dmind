@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -164,7 +165,7 @@
         </div>
 
         <div class="field">
-            <label class="label">自定义停顿词(Stop Word)</label>
+            <label class="label">自定义停顿词(Stop Word, 需要忽略的词)</label>
             <div class="control">
                 <textarea class="textarea" placeholder="除基础停顿词外, 比如解析 [保险]时, 可以添加 阳光,中国 作为忽略词"></textarea>
             </div>
@@ -184,7 +185,7 @@
                 <div class="field">
                     <label class="label">Email 收件地址</label>
                     <div class="control">
-                        <input class="input" type="email" placeholder="abc@qq.com" name="mailTo">
+                        <input class="input" type="email" placeholder="abc@qq.com" name="mailTo" value="weidong.du@foxmail.com">
                     </div>
                 </div>
             </div>
@@ -195,12 +196,23 @@
                 <progress class="progress is-success" value="0" max="100" id="iProgress">60%</progress>
             </div>
         </div>
+        <div class="columns">
 
-        <div class="field">
-            <div class="control">
-                <button class="button is-fullwidth is-info" id="iBtnSubmit" onclick="parseAdd()">开始解析</button>
+            <div class="column">
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-fullwidth is-info" id="iBtnTop" onclick="parseTop()">1. Top(200)解析</button>
+                    </div>
+                </div>
             </div>
 
+            <div class="column">
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-fullwidth is-info" id="iBtnSubmit" onclick="parseAdd()">2. Xmind + 邮件</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
 

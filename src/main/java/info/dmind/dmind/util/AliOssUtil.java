@@ -2,12 +2,12 @@ package info.dmind.dmind.util;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.GetObjectRequest;
 import com.aliyun.oss.model.OSSObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -39,34 +39,7 @@ public class AliOssUtil {
         InputStream content = ossObject.getObjectContent();
         HashSet<String> set = new HashSet<>();
         if (content != null) {
-            ByteArrayOutputStream baos = copyIS(content);
-            // 数据读取完成后，获取的流必须关闭，否则会造成连接泄漏，导致请求无连接可用，程序无法正常工作。
-            content.close();
-
-            int length = Math.min(baos.size(), 1000);
-            String encoding = new CpDetectorUtil().getInputStreamEncoding(new ByteArrayInputStream(baos.toByteArray()), length);
-
-            if (encoding == null) {
-                encoding = CHARSET_UTF8;
-            }
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(baos.toByteArray()), Charset.forName(encoding)));
-
-            while (true) {
-                String line = reader.readLine();
-                if (line == null) break;
-                String[] split_arr = line.split(CSV_SEP);
-                int index = Math.max(col - 1, 0);
-                if (split_arr.length > index) {
-                    if (StringUtils.isEmpty(split_arr[index])){
-
-                    }else {
-                        set.add(split_arr[index]);
-                    }
-                }
-            }
-
-            baos.close();
+            readColumn(col, content, set);
             // 关闭OSSClient。
             ossClient.shutdown();
         }
@@ -76,6 +49,76 @@ public class AliOssUtil {
         } else {
             return null;
         }
+    }
+
+
+    /**
+     * 返回本地 文件 abs path
+     * 返回绝对路径
+     * @param ossObjectName
+     * @return
+     */
+    public String downloadToFile(String ossObjectName) throws IOException {
+        String filePath = C.PROJECT_PATH + C.PATH_SYMBOL + C.DOWNLOAD_DIR + C.PATH_SYMBOL + ossObjectName;
+        boolean check = FileUtil.check(filePath);
+        if (check) {
+            log.info("File Exist [{}]", filePath);
+            return filePath;
+        }
+
+        FileUtil.create(filePath);
+
+        OSS oss = ossClient();
+        // 下载OSS文件到本地文件。如果指定的本地文件存在会覆盖，不存在则新建。
+        oss.getObject(new GetObjectRequest(BUCKET_NAME, ossObjectName), new File(filePath));
+        // 关闭OSSClient。
+        oss.shutdown();
+        return filePath;
+    }
+
+
+    public ArrayList<String> readCsvFromLocal(String filePath,int col) throws IOException {
+        // <yourObjectName>从OSS下载文件时需要指定包含文件后缀在内的完整路径，例如abc/efg/123.jpg。
+        InputStream content = new FileInputStream(filePath);
+        HashSet<String> set = new HashSet<>();
+        readColumn(col, content, set);
+
+        if (set.size() > 0) {
+            return new ArrayList<>(set);
+        } else {
+            return null;
+        }
+    }
+
+    private void readColumn(int col, InputStream content, HashSet<String> set) throws IOException {
+        ByteArrayOutputStream baos = copyIS(content);
+        // 数据读取完成后，获取的流必须关闭，否则会造成连接泄漏，导致请求无连接可用，程序无法正常工作。
+        content.close();
+
+        int length = Math.min(baos.size(), 1000);
+        String encoding = new CpDetectorUtil().getInputStreamEncoding(new ByteArrayInputStream(baos.toByteArray()), length);
+
+        if (encoding == null) {
+            encoding = CHARSET_UTF8;
+        }
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(baos.toByteArray()), Charset.forName(encoding)));
+
+        while (true) {
+            String line = reader.readLine();
+            if (line == null) break;
+            String[] split_arr = line.split(CSV_SEP);
+            int index = Math.max(col - 1, 0);
+            if (split_arr.length > index) {
+                if (StringUtils.isEmpty(split_arr[index])) {
+
+                } else {
+                    set.add(split_arr[index]);
+                }
+            }
+        }
+
+        baos.close();
     }
 
 

@@ -7,7 +7,6 @@ import info.dmind.dmind.domain.DmindObject;
 import info.dmind.dmind.util.*;
 import io.github.biezhi.ome.SendMailException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -18,6 +17,7 @@ import org.xmind.core.IWorkbook;
 import javax.annotation.Resource;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -32,17 +32,17 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BaiduLacService {
 
-    private static final int DEFAULT_COL = 1;
-    private static final int DEFAULT_BATCH_SIZE = 1000;
-    private static final String LEVEL_WORD_KEY = "levelWord";
-    private static final String LEVEL_WORD_LIST_KEY = "levelWordList";
-    private static final String WORD_LINK_SYMBOL = "_";
-    private static final String OUTPUT_DIR = "output";
-    private static final String PATH_SYMBOL = "/";
-    private static final String TYPE_XMIND = ".xmind";
-    private static final String PROCESS = "process";
-    private static final String PROJECT_PATH = new FileSystemResource("").getFile().getAbsolutePath();
-    private static final JSONObject processJSONObject = new JSONObject();
+//    private static final int DEFAULT_COL = 1;
+//    private static final int DEFAULT_BATCH_SIZE = 1000;
+//    private static final String LEVEL_WORD_KEY = "levelWord";
+//    private static final String LEVEL_WORD_LIST_KEY = "levelWordList";
+//    private static final String WORD_LINK_SYMBOL = "_";
+//    private static final String OUTPUT_DIR = "output";
+//    private static final String PATH_SYMBOL = "/";
+//    private static final String TYPE_XMIND = ".xmind";
+//    private static final String PROCESS = "process";
+//    public static final String PROJECT_PATH = new FileSystemResource("").getFile().getAbsolutePath();// Users/abc
+//    private static final JSONObject processJSONObject = new JSONObject();
 
     @Resource
     private HttpRequestUtil httpRequestUtil;
@@ -58,11 +58,53 @@ public class BaiduLacService {
      *
      * @param dmind
      */
+    public Map<String, List<String>> segMap(DmindObject dmind) throws IOException {
+        //0。判断 segMap 是否存在
+        String[] fileName = dmind.getUrl().split("/");
+        String segMapFilePath = C.PROJECT_PATH + C.PATH_SYMBOL + C.OUTPUT_DIR + C.PATH_SYMBOL + C.SEG_MAP + fileName[fileName.length - 1];
+        boolean check = FileUtil.check(segMapFilePath);
+        if (check) {
+            FileInputStream fileInputStream = new FileInputStream(segMapFilePath);
+            //remove 自定义 stop word
+            Map<String, List<String>> segMap = JSON.parseObject(fileInputStream, HashMap.class);
+            removeStopWord(dmind,segMap,false);
+            return segMap;
+        }
+        //1。先 阿里云 下载文件
+        //2。解析csv
+        //3。获取seg map
+
+        String filePath = aliOssUtil.downloadToFile(dmind.getUrl());
+        ArrayList<String> keywordList = aliOssUtil.readCsvFromLocal(filePath, C.DEFAULT_COL);
+        Map<String, List<String>> segMap = seg(keywordList, dmind);
+        FileUtil.writeToFileJSON(segMapFilePath, segMap);
+        return segMap;
+    }
+
+    public ArrayList<String> topN(DmindObject dmind) throws IOException, CoreException, SendMailException {
+        simpleServer.send(C.PROCESS, String.valueOf(0));
+        Map<String, List<String>> segMap = segMap(dmind);
+        LinkedHashMap<String, Integer> mapTopN = sortByTopN(segMap);
+        int count = 0;
+        int limit = Math.min(mapTopN.size(), 200);
+        ArrayList<String> topList = new ArrayList<>();
+        for (String key : mapTopN.keySet()) {
+            if (count == limit) {
+                break;
+            }
+            topList.add(key);
+            count++;
+        }
+        simpleServer.send(C.PROCESS, String.valueOf(100));
+        return topList;
+    }
+
     @Async()
     public void parse(DmindObject dmind) throws IOException, CoreException, SendMailException {
-        ArrayList<String> keywordList = aliOssUtil.readCsv(dmind.getUrl(), DEFAULT_COL);
-        Map<String, ArrayList<String>> segMap = seg(keywordList, dmind);
+//        ArrayList<String> keywordList = aliOssUtil.readCsv(dmind.getUrl(), Constants.DEFAULT_COL);
+        Map<String, List<String>> segMap = segMap(dmind);
         LinkedHashMap<String, Integer> mapTopN = sortByTopN(segMap);
+
         AtomicInteger total = new AtomicInteger();
         mapTopN.forEach((k, v) -> {
             total.addAndGet(v);
@@ -74,7 +116,7 @@ public class BaiduLacService {
         }
 
         log.info("seg map level 1 start");
-        ArrayList<HashMap<String, ArrayList<String>>> mapArrayListLevel1 = levelMap(segMap, mapTopN, dmind, 1, levelWordSet);
+        List<HashMap<String, List<String>>> mapArrayListLevel1 = levelMap(segMap, mapTopN, dmind, 1, levelWordSet);
         IWorkbook workBook = XmindUtil.getWorkBook();
         ITopic rootTopicDefault = XmindUtil.getRootTopic(dmind.getTopicWord(), workBook);
 
@@ -83,8 +125,8 @@ public class BaiduLacService {
             ArrayList<IWorkbook> xmindList = new ArrayList<>();
             xmindList.add(workBook);
 
-            for (HashMap<String, ArrayList<String>> segMapLevel1 : mapArrayListLevel1) {
-                String keywordLevel1 = segMapLevel1.get(LEVEL_WORD_KEY).get(0);
+            for (HashMap<String, List<String>> segMapLevel1 : mapArrayListLevel1) {
+                String keywordLevel1 = segMapLevel1.get(C.LEVEL_WORD_KEY).get(0);
                 rootTopicDefault.add(XmindUtil.getTopic(keywordLevel1, workBook));
 
                 xmindKeywords.add(keywordLevel1);
@@ -98,8 +140,8 @@ public class BaiduLacService {
             outputMulti(dmind, xmindList);
 
         } else {
-            for (HashMap<String, ArrayList<String>> segMapLevel1 : mapArrayListLevel1) {
-                String keywordLevel1 = segMapLevel1.get(LEVEL_WORD_KEY).get(0);
+            for (HashMap<String, List<String>> segMapLevel1 : mapArrayListLevel1) {
+                String keywordLevel1 = segMapLevel1.get(C.LEVEL_WORD_KEY).get(0);
                 rootTopicDefault.add(XmindUtil.getTopic(keywordLevel1, workBook));
                 xmindKeywords.add(keywordLevel1);
                 xmindLevel(dmind, mapTopN, total, segMapLevel1, keywordLevel1, workBook, xmindKeywords);
@@ -115,8 +157,8 @@ public class BaiduLacService {
     private void outputTopN(DmindObject dmind, LinkedHashMap<String, Integer> mapTopN) throws IOException {
         if (mapTopN.keySet().size() > 0) {
             //Get the file reference
-            String topName = (dmind.getTopicWord() + WORD_LINK_SYMBOL + "topN" + WORD_LINK_SYMBOL + new Date().getTime() + ".csv").replaceAll("[\\s\\t\\n\\r]", WORD_LINK_SYMBOL);
-            String topFile = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR + PATH_SYMBOL + topName;
+            String topName = (dmind.getTopicWord() + C.WORD_LINK_SYMBOL + "topN" + C.WORD_LINK_SYMBOL + new Date().getTime() + ".csv").replaceAll("[\\s\\t\\n\\r]", C.WORD_LINK_SYMBOL);
+            String topFile = C.PROJECT_PATH + C.PATH_SYMBOL + C.OUTPUT_DIR + C.PATH_SYMBOL + topName;
             Path path = Paths.get(topFile);
             //Use try-with-resource to get auto-closeable writer instance
             try (BufferedWriter writer = Files.newBufferedWriter(path)) {
@@ -136,8 +178,8 @@ public class BaiduLacService {
     private void outputKeyword(DmindObject dmind, List<String> list) throws IOException {
         if (list != null && list.size() > 0) {
             //Get the file reference
-            String topName = (dmind.getTopicWord() + WORD_LINK_SYMBOL + "keyword" + WORD_LINK_SYMBOL + new Date().getTime() + ".csv").replaceAll("[\\s\\t\\n\\r]", WORD_LINK_SYMBOL);
-            String topFile = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR + PATH_SYMBOL + topName;
+            String topName = (dmind.getTopicWord() + C.WORD_LINK_SYMBOL + "keyword" + C.WORD_LINK_SYMBOL + new Date().getTime() + ".csv").replaceAll("[\\s\\t\\n\\r]", C.WORD_LINK_SYMBOL);
+            String topFile = C.PROJECT_PATH + C.PATH_SYMBOL + C.OUTPUT_DIR + C.PATH_SYMBOL + topName;
             Path path = Paths.get(topFile);
             //Use try-with-resource to get auto-closeable writer instance
             try (BufferedWriter writer = Files.newBufferedWriter(path)) {
@@ -154,7 +196,7 @@ public class BaiduLacService {
     }
 
 
-    private void xmindLevel(DmindObject dmind, LinkedHashMap<String, Integer> mapTopN, AtomicInteger total, HashMap<String, ArrayList<String>> segMapLevel1, String keywordLevel1, IWorkbook workBookLevel, List<String> xmindKeywords) {
+    private void xmindLevel(DmindObject dmind, LinkedHashMap<String, Integer> mapTopN, AtomicInteger total, HashMap<String, List<String>> segMapLevel1, String keywordLevel1, IWorkbook workBookLevel, List<String> xmindKeywords) {
         log.info("start new sheer from level 1 keyword={}", keywordLevel1);
         ITopic rootTopicLevel1;
 
@@ -165,27 +207,27 @@ public class BaiduLacService {
         }
 
         log.debug("seg map level 2 start keyword={}", keywordLevel1);
-        ArrayList<HashMap<String, ArrayList<String>>> mapArrayListLevel2 = levelMap(segMapLevel1, sortByTopN(segMapLevel1), dmind, 2, new HashSet<>(segMapLevel1.get(LEVEL_WORD_LIST_KEY)));
+        List<HashMap<String, List<String>>> mapArrayListLevel2 = levelMap(segMapLevel1, sortByTopN(segMapLevel1), dmind, 2, new HashSet<>(segMapLevel1.get(C.LEVEL_WORD_LIST_KEY)));
 
-        for (HashMap<String, ArrayList<String>> segMapLevel2 : mapArrayListLevel2) {
-            String keywordLevel2 = segMapLevel2.get(LEVEL_WORD_KEY).get(0);
+        for (HashMap<String, List<String>> segMapLevel2 : mapArrayListLevel2) {
+            String keywordLevel2 = segMapLevel2.get(C.LEVEL_WORD_KEY).get(0);
             ITopic topicLevel2 = XmindUtil.getTopic(calcPct(keywordLevel2, mapTopN, total.get()), workBookLevel);
             rootTopicLevel1.add(topicLevel2);
 
             log.debug("seg map level 3 start keyword={}", keywordLevel2);
-            ArrayList<HashMap<String, ArrayList<String>>> mapArrayListLevel3 = levelMap(segMapLevel2, sortByTopN(segMapLevel2), dmind, 3, new HashSet<>(segMapLevel2.get(LEVEL_WORD_LIST_KEY)));
+            List<HashMap<String, List<String>>> mapArrayListLevel3 = levelMap(segMapLevel2, sortByTopN(segMapLevel2), dmind, 3, new HashSet<>(segMapLevel2.get(C.LEVEL_WORD_LIST_KEY)));
 
-            for (HashMap<String, ArrayList<String>> segMapLevel3 : mapArrayListLevel3) {
-                String keywordLevel3 = segMapLevel3.get(LEVEL_WORD_KEY).get(0);
+            for (HashMap<String, List<String>> segMapLevel3 : mapArrayListLevel3) {
+                String keywordLevel3 = segMapLevel3.get(C.LEVEL_WORD_KEY).get(0);
                 ITopic topicLevel3 = XmindUtil.getTopic(calcPct(keywordLevel3, mapTopN, total.get()), workBookLevel);
                 topicLevel2.add(topicLevel3);
 
                 log.debug("seg map level 4 start keyword={}", keywordLevel3);
-                ArrayList<HashMap<String, ArrayList<String>>> mapArrayListLevel4 = levelMap(segMapLevel3, sortByTopN(segMapLevel3), dmind, 3, new HashSet<>(segMapLevel3.get(LEVEL_WORD_LIST_KEY)));
+                List<HashMap<String, List<String>>> mapArrayListLevel4 = levelMap(segMapLevel3, sortByTopN(segMapLevel3), dmind, 3, new HashSet<>(segMapLevel3.get(C.LEVEL_WORD_LIST_KEY)));
 
-                for (HashMap<String, ArrayList<String>> segMapLevel4 : mapArrayListLevel4) {
+                for (HashMap<String, List<String>> segMapLevel4 : mapArrayListLevel4) {
                     for (String key : segMapLevel4.keySet()) {
-                        if (LEVEL_WORD_KEY.equalsIgnoreCase(key) || LEVEL_WORD_LIST_KEY.equalsIgnoreCase(key)) {
+                        if (C.LEVEL_WORD_KEY.equalsIgnoreCase(key) || C.LEVEL_WORD_LIST_KEY.equalsIgnoreCase(key)) {
                             xmindKeywords.add(keywordLevel1 + "/" + keywordLevel2 + "/" + keywordLevel3 + "/!");
                         } else {
                             log.debug("final keyword {}", key);
@@ -202,9 +244,9 @@ public class BaiduLacService {
 
 
     private void outputSingle(DmindObject dmind, IWorkbook workBook) throws IOException, CoreException, SendMailException {
-        String xmindName = (dmind.getTopicWord() + WORD_LINK_SYMBOL + new Date().getTime() + TYPE_XMIND).replaceAll("[\\s\\t\\n\\r]", WORD_LINK_SYMBOL);
-        String outputDir = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR;
-        String xmindFile = outputDir + PATH_SYMBOL + dmind.getTopicWord() + TYPE_XMIND;
+        String xmindName = (dmind.getTopicWord() + C.WORD_LINK_SYMBOL + new Date().getTime() + C.TYPE_XMIND).replaceAll("[\\s\\t\\n\\r]", C.WORD_LINK_SYMBOL);
+        String outputDir = C.PROJECT_PATH + C.PATH_SYMBOL + C.OUTPUT_DIR;
+        String xmindFile = outputDir + C.PATH_SYMBOL + dmind.getTopicWord() + C.TYPE_XMIND;
 
         File dir = new File(outputDir);
         if (!dir.exists()) {// 判断目录是否存在
@@ -216,7 +258,7 @@ public class BaiduLacService {
         //发送邮件
         HashMap<String, String> attachMap = new HashMap<>();
         attachMap.put(xmindName, new File(xmindFile).getAbsolutePath());
-        simpleServer.send(PROCESS, String.valueOf(100));
+        simpleServer.send(C.PROCESS, String.valueOf(100));
         mailUtil.sendFile(attachMap, xmindName, dmind.getMailTo());
         log.info("mail to [{}] , send success {}", dmind.getMailTo(), xmindFile);
     }
@@ -227,9 +269,9 @@ public class BaiduLacService {
         int index = 0;
         long now = new Date().getTime();
         for (IWorkbook workbook : list) {
-            String xmindName = (index + WORD_LINK_SYMBOL + workbook.getPrimarySheet().getTitleText() + WORD_LINK_SYMBOL + now + TYPE_XMIND).replaceAll("[\\s\\t\\n\\r]", WORD_LINK_SYMBOL);
-            String outputDir = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR;
-            String xmindFile = outputDir + PATH_SYMBOL + xmindName;
+            String xmindName = (index + C.WORD_LINK_SYMBOL + workbook.getPrimarySheet().getTitleText() + C.WORD_LINK_SYMBOL + now + C.TYPE_XMIND).replaceAll("[\\s\\t\\n\\r]", C.WORD_LINK_SYMBOL);
+            String outputDir = C.PROJECT_PATH + C.PATH_SYMBOL + C.OUTPUT_DIR;
+            String xmindFile = outputDir + C.PATH_SYMBOL + xmindName;
 
             File dir = new File(outputDir);
             if (!dir.exists()) {// 判断目录是否存在
@@ -247,8 +289,8 @@ public class BaiduLacService {
             index++;
         }
 
-        String zipName = (dmind.getTopicWord() + WORD_LINK_SYMBOL + now + ".zip").replaceAll("[\\s\\t\\n\\r]", WORD_LINK_SYMBOL);
-        String zipFile = PROJECT_PATH + PATH_SYMBOL + OUTPUT_DIR + PATH_SYMBOL + zipName;
+        String zipName = (dmind.getTopicWord() + C.WORD_LINK_SYMBOL + now + ".zip").replaceAll("[\\s\\t\\n\\r]", C.WORD_LINK_SYMBOL);
+        String zipFile = C.PROJECT_PATH + C.PATH_SYMBOL + C.OUTPUT_DIR + C.PATH_SYMBOL + zipName;
 
         int count = ZipUtil.compress(xmindFileList, zipFile, false);
         log.info("zip {} files", count);
@@ -265,7 +307,7 @@ public class BaiduLacService {
         mailUtil.sendFile(attachMap, zipName, dmind.getMailTo());
 
 
-        simpleServer.send(PROCESS, String.valueOf(100));
+        simpleServer.send(C.PROCESS, String.valueOf(100));
         log.info("mail to [{}] , send success {}", dmind.getMailTo(), zipName);
     }
 
@@ -283,7 +325,7 @@ public class BaiduLacService {
         int count = mapTopN.get(keyword);
         String pct = decimalFormat.format((double) count / total);
 
-        return keyword + WORD_LINK_SYMBOL + count + WORD_LINK_SYMBOL + pct;
+        return keyword + C.WORD_LINK_SYMBOL + count + C.WORD_LINK_SYMBOL + pct;
     }
 
     /**
@@ -293,8 +335,8 @@ public class BaiduLacService {
      * @param mapTopN
      * @param dmind
      */
-    ArrayList<HashMap<String, ArrayList<String>>> levelMap(Map<String, ArrayList<String>> segMap, LinkedHashMap<String, Integer> mapTopN, DmindObject dmind, int level, HashSet<String> upLevelWordSet) {
-        ArrayList<HashMap<String, ArrayList<String>>> mapArrayList = new ArrayList<>();
+    List<HashMap<String, List<String>>> levelMap(Map<String, List<String>> segMap, LinkedHashMap<String, Integer> mapTopN, DmindObject dmind, int level, HashSet<String> upLevelWordSet) {
+        List<HashMap<String, List<String>>> mapArrayList = new ArrayList<>();
         int count = 0;
         switch (level) {
             case 1:
@@ -329,21 +371,21 @@ public class BaiduLacService {
 
 
         for (String levelWord : levelWordList) {
-            HashMap<String, ArrayList<String>> levelWordSegMap = new HashMap<>();
+            HashMap<String, List<String>> levelWordSegMap = new HashMap<>();
             //当前 level 关键词
             ArrayList<String> levelWordArrayList = new ArrayList<>();
             levelWordArrayList.add(levelWord);
-            levelWordSegMap.put(LEVEL_WORD_KEY, levelWordArrayList);
+            levelWordSegMap.put(C.LEVEL_WORD_KEY, levelWordArrayList);
 
             //此时 所有 level 关键词
             ArrayList<String> levelWordArrayListChain = new ArrayList<>();
             levelWordArrayListChain.add(levelWord);
             levelWordArrayListChain.addAll(upLevelWordSet);
-            levelWordSegMap.put(LEVEL_WORD_LIST_KEY, levelWordArrayListChain);
+            levelWordSegMap.put(C.LEVEL_WORD_LIST_KEY, levelWordArrayListChain);
 
             segMap.forEach((k, v) -> {
                 if (v.contains(levelWord)) {
-                    levelWordSegMap.put(k, v);
+                    levelWordSegMap.put(k, new ArrayList<>(v));
                 }
             });
             mapArrayList.add(levelWordSegMap);
@@ -352,7 +394,7 @@ public class BaiduLacService {
         return mapArrayList;
     }
 
-    private LinkedHashMap<String, Integer> sortByTopN(Map<String, ArrayList<String>> segMap) {
+    private LinkedHashMap<String, Integer> sortByTopN(Map<String, List<String>> segMap) {
         HashMap<String, Integer> countMap = calcKeywordCount(segMap);
         final LinkedHashMap<String, Integer> map = countMap.entrySet()
                 .stream()
@@ -362,7 +404,7 @@ public class BaiduLacService {
         return map;
     }
 
-    private HashMap<String, Integer> calcKeywordCount(Map<String, ArrayList<String>> map) {
+    private HashMap<String, Integer> calcKeywordCount(Map<String, List<String>> map) {
         HashMap<String, Integer> countMap = new HashMap<>();
         //词频
         map.forEach((k, value) -> {
@@ -379,56 +421,63 @@ public class BaiduLacService {
         return countMap;
     }
 
-    private Map<String, ArrayList<String>> seg(ArrayList<String> keywordList, DmindObject dmind) throws IOException {
+    private Map<String, List<String>> seg(ArrayList<String> keywordList, DmindObject dmind) throws IOException {
         if (keywordList != null && keywordList.size() > 0) {
-            HashMap<String, ArrayList<String>> segMap = new HashMap<>(keywordList.size());
+            HashMap<String, List<String>> segMap = new HashMap<>(keywordList.size());
             JSONObject jsonObject = new JSONObject();
-            int round = keywordList.size() / BaiduLacService.DEFAULT_BATCH_SIZE;
-            int mod = keywordList.size() % BaiduLacService.DEFAULT_BATCH_SIZE;
+            int round = keywordList.size() / C.DEFAULT_BATCH_SIZE;
+            int mod = keywordList.size() % C.DEFAULT_BATCH_SIZE;
 
             if (round > 0) {
                 for (int i = 0; i < round; i++) {
-                    List<String> word = keywordList.subList(i * BaiduLacService.DEFAULT_BATCH_SIZE, (i + 1) * BaiduLacService.DEFAULT_BATCH_SIZE);
+                    List<String> word = keywordList.subList(i * C.DEFAULT_BATCH_SIZE, (i + 1) * C.DEFAULT_BATCH_SIZE);
                     jsonObject.put("word", word);
                     segByServer(dmind, segMap, jsonObject, word);
-                    log.info("keyword parse {} / {}", i * BaiduLacService.DEFAULT_BATCH_SIZE, keywordList.size());
-                    simpleServer.send(PROCESS, String.valueOf((i * BaiduLacService.DEFAULT_BATCH_SIZE * 100) / keywordList.size()));
+                    log.info("keyword parse {} / {}", i * C.DEFAULT_BATCH_SIZE, keywordList.size());
+                    simpleServer.send(C.PROCESS, String.valueOf((i * C.DEFAULT_BATCH_SIZE * 100) / keywordList.size()));
                 }
             }
             if (mod > 0) {
-                List<String> word = keywordList.subList(round * BaiduLacService.DEFAULT_BATCH_SIZE, keywordList.size());
+                List<String> word = keywordList.subList(round * C.DEFAULT_BATCH_SIZE, keywordList.size());
                 jsonObject.put("word", word);
                 segByServer(dmind, segMap, jsonObject, word);
             }
-
-            //排除 stop word
-            if (segMap.keySet().size() > 0) {
-                ArrayList<String> stopList = new ArrayList<>(Stopwords.STOP_WORD_LIST);
-                if (!StringUtils.isEmpty(dmind.getStopWords()) && !StringUtils.isEmpty(dmind.getStopSymbol())) {
-                    stopList.addAll(new ArrayList<>(Arrays.asList(dmind.getStopWords().split(dmind.getStopSymbol()))));
-                }
-
-                for (String key : segMap.keySet()) {
-                    ArrayList<String> value = segMap.get(key);
-                    log.debug("{} -> {}",key,JSON.toJSONString(value));
-                    Iterator<String> iterator = value.iterator();
-                    while (iterator.hasNext()){
-                        String item = iterator.next();
-
-                        if (stopList.contains(item)){
-                            log.debug("item={}",item);
-                            iterator.remove();
-                        }
-                    }
-                    log.debug("{} -> {}",key,JSON.toJSONString(segMap.get(key)));
-                }
-            }
+            removeStopWord(dmind, segMap,true);//第一次全量stop words
             return segMap;
         }
         return null;
     }
 
-    private void segByServer(DmindObject dmind, HashMap<String, ArrayList<String>> segMap, JSONObject jsonObject, List<String> word) throws IOException {
+    private void removeStopWord(DmindObject dmind, Map<String, List<String>> segMap,boolean isBasicStop) {
+        //排除 stop word
+        if (segMap.keySet().size() > 0) {
+            ArrayList<String> stopList = new ArrayList<>();
+            if (isBasicStop){
+                stopList.addAll(Stopwords.STOP_WORD_LIST);
+            }
+
+            if (!StringUtils.isEmpty(dmind.getStopWords()) && !StringUtils.isEmpty(dmind.getStopSymbol())) {
+                stopList.addAll(new ArrayList<>(Arrays.asList(dmind.getStopWords().split(dmind.getStopSymbol()))));
+            }
+
+            for (String key : segMap.keySet()) {
+                List<String> value = segMap.get(key);
+                log.debug("{} -> {}", key, JSON.toJSONString(value));
+                Iterator<String> iterator = value.iterator();
+                while (iterator.hasNext()) {
+                    String item = iterator.next();
+
+                    if (stopList.contains(item)) {
+                        log.debug("item={}", item);
+                        iterator.remove();
+                    }
+                }
+                log.debug("{} -> {}", key, JSON.toJSONString(segMap.get(key)));
+            }
+        }
+    }
+
+    private void segByServer(DmindObject dmind, HashMap<String, List<String>> segMap, JSONObject jsonObject, List<String> word) throws IOException {
         byte[] bytes = new byte[0];
         try {
             bytes = httpRequestUtil.postJSON(dmind.getBaiduLacServer(), null, jsonObject.toJSONString());

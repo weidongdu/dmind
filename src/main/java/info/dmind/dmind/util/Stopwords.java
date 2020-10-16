@@ -141,7 +141,7 @@ public class Stopwords {
 
             , "value", "various", "very", "via", "viz", "vs"
 
-            , "where", "whereafter", "whereas", "whereby", "wherein", "where's", "whereupon", "wherever", "whether"
+            , "what","where", "whereafter", "whereas", "whereby", "wherein", "where's", "whereupon", "wherever", "whether"
             , "which", "while", "whither", "who", "whoever", "whole", "whom", "who's", "whose", "why", "will", "willing"
             , "wish", "with", "within", "without", "wonder", "won't", "would", "wouldn't"
 
@@ -151,6 +151,7 @@ public class Stopwords {
 
             , "你好", "嘛", "哎呀","吗"
 
+            ," "
             ,"", "`", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/"
             , "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "{", "}", "|", ":", "\"", "<", ">", "?"
             , "·", "-", "=", "【", "】", "、", "；", "‘", "’", "，", "。", "、"

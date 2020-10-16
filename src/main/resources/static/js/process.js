@@ -1,21 +1,21 @@
 const wsUrl = "ws://localhost:8091";//localhost 根据实际情况替换成 响应的ip 或者域名
 let ws = new WebSocket(wsUrl);
 
-ws.onopen = function(evt) {
+ws.onopen = function (evt) {
     console.log("Connection open ...");
     // ws.send("Hello WebSockets!");
 };
 
-ws.onmessage = function(evt) {
+ws.onmessage = function (evt) {
     // ws.close();
     let msgObj = JSON.parse(evt.data);
-    if ('process' === msgObj.key){
+    if ('process' === msgObj.key) {
         //设置 进度条
         document.querySelector("#iProgress").value = msgObj.value;
     }
 };
 
-ws.onclose = function(evt) {
+ws.onclose = function (evt) {
     console.log("Connection closed.");
 };
 
@@ -40,6 +40,38 @@ function deleteNotify() {
 
 
 function parseAdd() {
+    let obj = getDmindObj();
+    if (obj.count === 0) {
+        console.log(ws.readyState)
+        console.log(ws.CLOSED)
+        postJson("/parse/add", obj, parseAddRes);
+        btnParse('#iBtnSubmit')
+    }
+}
+
+function parseTop() {
+    let obj = getDmindObj();
+    if (obj.count === 0) {
+
+        postJson("/parse/top", obj, parseTopRes);
+        btnParse('#iBtnTop')
+    }
+}
+
+function btnParse(cs) {
+    let btn = document.querySelector(cs);
+    btn.setAttribute("class", "button is-fullwidth is-info is-loading");
+    const interval = setInterval(function () {
+        btn.setAttribute("class", "button is-fullwidth is-info");
+        clearInterval(interval);
+    }, 5000);
+
+    if (ws.readyState === ws.CLOSED) {
+        ws = new WebSocket(wsUrl)
+    }
+}
+
+function getDmindObj() {
     let count = 0;
     let obj = {};
     //校验 url
@@ -87,23 +119,9 @@ function parseAdd() {
     obj.stopSymbol = params.querySelector("input[name=stopSymbol]").value;
 
     console.log(JSON.stringify(obj))
-    if (count === 0){
-        console.log(ws.readyState)
-        console.log(ws.CLOSED)
-        postJson("/parse/add",obj);
-        let btn = document.querySelector('#iBtnSubmit');
-        btn.setAttribute("class", "button is-fullwidth is-info is-loading");
-        const interval = setInterval(function () {
-            btn.setAttribute("class", "button is-fullwidth is-info");
-            clearInterval(interval);
-        }, 1000);
-
-        if(ws.readyState === ws.CLOSED){
-            ws=new WebSocket(wsUrl)
-        }
-    }
+    obj.count = count;
+    return obj;
 }
-
 
 function checkTopN(ele, index, obj) {
     if (ele.value === '' || ele.value === undefined || parseInt(ele.value) > parseInt(ele.max) || parseInt(ele.value) < 1) {
@@ -115,7 +133,7 @@ function checkTopN(ele, index, obj) {
     }
 }
 
-function postJson(url, obj) {
+function postJson(url, obj, parse) {
     fetch(url, {
         method: 'post',
         headers: {
@@ -123,5 +141,28 @@ function postJson(url, obj) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(obj)
-    }).then(res => console.log(res));
+    })
+        .then(res => res.json())
+        .catch(error => console.error('Error:', error))
+        .then(response => {
+            parse(response)
+        });
+}
+
+function parseTopRes(response) {
+    console.log(JSON.stringify(response))
+    if (response !== null && response.code === 0) {
+        let s = ",";
+        document.querySelector("textarea").value = '';
+        document.querySelector("input[name=stopSymbol]").value = s;
+        document.querySelector('#iBtnTop').setAttribute("class", "button is-fullwidth is-info");
+
+        response.data.forEach(item => {
+            document.querySelector("textarea").value += item + s;
+        });
+    }
+}
+
+function parseAddRes(response) {
+    console.log(JSON.stringify(response))
 }
