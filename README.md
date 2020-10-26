@@ -63,6 +63,7 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 
 ### 4.构建打包
 获取项目 `git clone https://github.com/weidongdu/dmind.git`
+
 ![项目结构](https://gitee.com/weidongdu/pic/raw/master/dmind/tree.jpg)
 
 
@@ -70,6 +71,9 @@ LAC是个优秀的分词工具 -> [LAC, 是, 个, 优秀, 的, 分词, 工具]
 修改配置 `application.properties` `static/js/upload.js`
 ![application.properties](https://gitee.com/weidongdu/pic/raw/master/dmind/config1.jpg)
 ![upload.js](https://gitee.com/weidongdu/pic/raw/master/dmind/config-2.jpg)
+
+修改websocket 连接
+![process.js](https://gitee.com/weidongdu/pic/raw/master/dmind/websocket.jpg)
 
 
 指定邮箱，设置oss秘钥
