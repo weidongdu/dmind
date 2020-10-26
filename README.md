@@ -1,11 +1,7 @@
 # 大数据 转换 思维导图 http://dmind.info
 
 首页
-![首页](https://gitee.com/weidongdu/pic/raw/master/dmind/home.jpg)
----
-
-提交信息
-![提交信息](https://gitee.com/weidongdu/pic/raw/master/dmind/parse.jpg)
+![首页](https://gitee.com/weidongdu/pic/blob/master/dmind/home-new.jpg)
 ---
 
 文件上传
